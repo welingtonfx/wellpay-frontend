@@ -93,7 +93,8 @@ jobs:
             --set image.repository="$IMAGE_REPOSITORY" \
             --set image.tag="${{ steps.vars.outputs.image_tag }}" \
             --set image.pullPolicy=Always \
-            --set imagePullSecrets[0].name=vcr-creds
+            --set imagePullSecrets[0].name=vcr-creds \
+            --set certManager.email="${{ vars.LETSENCRYPT_EMAIL }}"
 
       - name: Wait for rollout
         run: kubectl rollout status deployment/${{ env.HELM_RELEASE }} -n ${{ env.K8S_NAMESPACE }}

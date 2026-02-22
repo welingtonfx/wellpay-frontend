@@ -5,9 +5,14 @@ metadata:
   name: {{ include "wellpay-frontend.fullname" . }}
   labels:
     {{- include "wellpay-frontend.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- if or .Values.certManager.enabled .Values.ingress.annotations }}
   annotations:
+    {{- if .Values.certManager.enabled }}
+    cert-manager.io/issuer: {{ .Values.certManager.issuerName | quote }}
+    {{- end }}
+    {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}

@@ -24,7 +24,18 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  tls:
+    - secretName: wellfx-store-tls
+      hosts:
+        - wellfx.store
+
+certManager:
+  enabled: true
+  issuerName: wellpay-letsencrypt
+  email: ""
+  server: "https://acme-v02.api.letsencrypt.org/directory"
+  privateKeySecretName: wellpay-letsencrypt-account-key
+  ingressClass: nginx
 
 resources: {}
 
