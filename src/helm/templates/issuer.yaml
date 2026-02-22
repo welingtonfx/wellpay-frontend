@@ -1,0 +1,18 @@
+{{- if .Values.certManager.enabled -}}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ .Values.certManager.issuerName }}
+  labels:
+    {{- include "wellpay-frontend.labels" . | nindent 4 }}
+spec:
+  acme:
+    email: {{ required "Set .Values.certManager.email to request TLS certificates" .Values.certManager.email | quote }}
+    server: {{ .Values.certManager.server | quote }}
+    privateKeySecretRef:
+      name: {{ .Values.certManager.privateKeySecretName | quote }}
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.certManager.ingressClass | quote }}
+{{- end }}
