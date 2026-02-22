@@ -32,7 +32,7 @@ ingress:
 certManager:
   enabled: true
   issuerName: wellpay-letsencrypt
-  email: "welingtonfx@gmail.com"
+  email: ""
   server: "https://acme-v02.api.letsencrypt.org/directory"
   privateKeySecretName: wellpay-letsencrypt-account-key
   ingressClass: nginx
