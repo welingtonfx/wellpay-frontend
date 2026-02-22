@@ -1,17 +1,16 @@
 name: CI/CD
 
-env:
-  BUILD_OUTPUT_DIR: dist/wellpay-frontend/browser
-
 on:
   push:
     branches:
       - main
       - prod
-  pull_request:
-    branches:
-      - main
-      - prod
+
+env:
+  IMAGE_REPOSITORY: ewr.vultrcr.com/wellpay/wellpay-frontend
+  K8S_NAMESPACE: wellpay
+  HELM_RELEASE: wellpay-frontend
+  HELM_CHART_PATH: src/helm
 
 jobs:
   build:
@@ -34,39 +33,67 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: angular-build-output
-          path: ${{ env.BUILD_OUTPUT_DIR }}
-
   deploy-prod:
-    name: Deploy to Cloudflare (prod)
+    name: Build Image and Deploy to Vultr Kubernetes
     runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/prod'
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Generate image tag
+        id: vars
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "image_tag=prod-${GITHUB_RUN_NUMBER}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Vultr Container Registry
+        uses: docker/login-action@v3
         with:
-          node-version-file: .nvmrc
-          cache: npm
+          registry: ewr.vultrcr.com
+          username: ${{ secrets.VULTR_REGISTRY_USERNAME }}
+          password: ${{ secrets.VULTR_REGISTRY_PASSWORD }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - name: Build and push image
+        uses: docker/build-push-action@v6
         with:
-          name: angular-build-output
-          path: cloudflare-deploy
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPOSITORY }}:${{ steps.vars.outputs.image_tag }}
+            ${{ env.IMAGE_REPOSITORY }}:latest
 
-      - name: Deploy with Wrangler
-        run: npx wrangler pages deploy ./cloudflare-deploy --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}"
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install "$HELM_RELEASE" "$HELM_CHART_PATH" \
+            --namespace "$K8S_NAMESPACE" \
+            --create-namespace \
+            --set image.repository="$IMAGE_REPOSITORY" \
+            --set image.tag="${{ steps.vars.outputs.image_tag }}" \
+            --set image.pullPolicy=Always \
+            --set imagePullSecrets[0].name=vcr-creds
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/${{ env.HELM_RELEASE }} -n ${{ env.K8S_NAMESPACE }}
