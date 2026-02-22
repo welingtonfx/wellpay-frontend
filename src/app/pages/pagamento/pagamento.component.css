@@ -1,0 +1,53 @@
+.scene {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 20% 10%, #f1f5f9 0%, #e2e8f0 45%, #f8fafc 100%);
+  font-family: 'Manrope', sans-serif;
+}
+
+.card {
+  width: min(560px, 90%);
+  padding: 2rem;
+  border-radius: 22px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.98));
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+}
+
+h1 {
+  margin: 0 0 1rem;
+  color: #0f172a;
+  font-size: 2.2rem;
+}
+
+.payment-list {
+  margin: 0 0 1.5rem;
+  padding-left: 1.25rem;
+  color: #475569;
+  text-align: left;
+}
+
+.payment-list li {
+  margin: 0.35rem 0;
+}
+
+.pay-button {
+  display: inline-flex;
+  width: 236px;
+  height: 92px;
+  border-radius: 16px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: #6b7280;
+  color: #ffffff;
+  font-size: 1.55rem;
+  font-weight: 700;
+  box-shadow: 0 0 18px rgba(100, 116, 139, 0.24);
+}
+
+.pay-button:hover {
+  background: #4b5563;
+}
